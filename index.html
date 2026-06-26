@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Operativo — TECO S.A.S. | Nutresa</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --teco:#000090;--teco-c:#26C6DA;--teco-cl:rgba(38,198,218,0.10);--teco-dl:rgba(0,0,144,0.06);
+  --bg:#f5f5f7;--card:#ffffff;--border:#e0e0e0;--text:#1a1a1a;--muted:#666;--light:#f0f0f2;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:13px}
+/* HEADER */
+.header{background:var(--teco);padding:14px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.hdr-left{display:flex;align-items:center;gap:14px}
+.logo-box{background:white;border-radius:8px;padding:6px 10px;height:52px;display:flex;align-items:center}
+.logo-box img{height:38px;width:auto}
+.hdr-titles .sup{font-size:10px;color:rgba(255,255,255,0.55);margin-bottom:2px}
+.hdr-titles .main{font-size:15px;font-weight:500;color:white}
+.hdr-date{font-size:10px;color:rgba(255,255,255,0.45);margin-top:4px}
+/* TABS */
+.tab-bar{background:white;border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0;overflow-x:auto}
+.tab{padding:12px 18px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:transparent;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;transition:color .15s}
+.tab.active{color:var(--teco);border-bottom-color:var(--teco)}
+.tab:hover:not(.active){color:var(--text)}
+/* VIEWS */
+.view{display:none;padding:20px 24px;max-width:1100px;margin:0 auto}
+.view.active{display:block}
+/* KPI GRID */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:1.25rem}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kpi.hl{border-color:var(--teco-c);border-width:1.5px}
+.kpi .lbl{font-size:10px;color:var(--muted);margin-bottom:4px}
+.kpi .val{font-size:20px;font-weight:500}
+.val.ok{color:#1D9E75}.val.warn{color:#BA7517}.val.fail{color:#E24B4A}.val.blue{color:var(--teco)}.val.cyan{color:#0097A7}
+/* SECTION TITLE */
+.sec{font-size:10px;font-weight:600;color:var(--muted);letter-spacing:.07em;text-transform:uppercase;margin:1rem 0 7px}
+.subsec{font-size:11px;font-weight:500;color:var(--muted);margin:8px 0 5px;padding-left:8px;border-left:2px solid var(--border)}
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.card-title{font-size:13px;font-weight:500}
+.card-sub{font-size:10px;color:var(--muted)}
+.card-date{font-size:10px;color:var(--muted);background:var(--light);padding:2px 8px;border-radius:20px}
+/* POINT GRID */
+.point-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:1rem}
+.point-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.point-title{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.point-title.reactor{color:var(--teco)}
+.pp{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.pp-name{font-size:11px;color:var(--muted)}
+.pp-val{font-size:12px;font-weight:500}
+.pp-val.ok{color:#1D9E75}.pp-val.warn{color:#BA7517}.pp-val.fail{color:#E24B4A}.pp-val.na{color:#bbb}
+.aspect-tag{font-size:10px;padding:2px 8px;background:var(--light);border-radius:20px;color:var(--muted)}
+/* STATUS ROW */
+.st-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px}
+.st-pill{text-align:center;padding:7px 4px;border-radius:8px;background:var(--light)}
+.st-pill .n{font-size:18px;font-weight:500}
+.st-pill .l{font-size:10px;color:var(--muted);margin-top:1px}
+/* PARAM LIST */
+.plist{display:flex;flex-direction:column;gap:3px;margin-bottom:8px}
+.prow{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;border-radius:6px}
+.prow.ok{background:rgba(0,0,144,0.04)}.prow.warn{background:rgba(186,117,23,0.07)}.prow.fail{background:rgba(226,75,74,0.07)}
+.plbl{font-size:11px;color:var(--muted)}
+.pright{display:flex;align-items:center;gap:6px}
+.pval{font-size:12px;font-weight:500}
+.pval.ok{color:#1D9E75}.pval.warn{color:#BA7517}.pval.fail{color:#E24B4A}
+.dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.dot.ok{background:#1D9E75}.dot.warn{background:#BA7517}.dot.fail{background:#E24B4A}
+/* CHART */
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
+.chart-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.chart-ttl{font-size:13px;font-weight:500}
+.chart-sel{font-size:11px;border:1px solid var(--border);border-radius:6px;padding:4px 8px;background:var(--light);color:var(--text);cursor:pointer}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.legend span{display:flex;align-items:center;gap:3px}
+.ld{width:10px;height:3px;border-radius:2px;display:inline-block}
+/* ALERTS */
+.alert-box{background:var(--light);border-radius:8px;padding:10px 12px;margin-bottom:10px}
+.alert-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.alert-hdr-lbl{font-size:11px;font-weight:500;color:var(--muted)}
+.alert-item{font-size:11px;padding:5px 8px;border-radius:6px;margin-bottom:3px;border-left:3px solid}
+.alert-item.fail{background:rgba(226,75,74,0.07);border-color:#E24B4A}
+.alert-item.warn{background:rgba(186,117,23,0.07);border-color:#BA7517}
+.alert-ta{width:100%;font-size:11px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:white;color:var(--text);resize:vertical;margin-top:6px;min-height:55px;font-family:inherit}
+/* FORM */
+.form-block{background:var(--light);border-radius:8px;padding:12px;margin-top:8px}
+.form-grid{display:grid;gap:7px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));margin-bottom:8px}
+.form-grid label{font-size:10px;color:var(--muted);margin-bottom:2px;display:block}
+.form-grid input,.form-grid select{width:100%;font-size:11px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;background:white;color:var(--text)}
+.form-full{margin-bottom:7px}
+.form-full label{font-size:10px;color:var(--muted);margin-bottom:2px;display:block}
+.form-full textarea{width:100%;font-size:11px;padding:6px 8px;border:1px solid var(--border);border-radius:6px;background:white;color:var(--text);resize:vertical;min-height:45px;font-family:inherit}
+.btn{padding:6px 16px;background:var(--teco);color:white;border:none;border-radius:6px;font-size:11px;cursor:pointer;margin-top:2px}
+.btn:hover{opacity:.88}
+.btn-sm{padding:4px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;font-size:10px;cursor:pointer;color:var(--muted)}
+.btn-sm:hover{background:var(--light)}
+/* COUNTER */
+.counter-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-bottom:8px}
+.c-stat{background:var(--light);border-radius:8px;padding:8px 10px}
+.c-stat .l{font-size:10px;color:var(--muted);margin-bottom:1px}
+.c-stat .v{font-size:15px;font-weight:500;color:var(--teco)}
+/* VOL ROW */
+.vrow{display:flex;justify-content:space-between;align-items:center;padding:5px 8px;background:var(--teco-cl);border-radius:6px;margin-bottom:3px}
+.vlbl{font-size:11px;color:var(--muted)}
+.vval{font-size:13px;font-weight:500;color:var(--teco)}
+/* MES TABS */
+.mes-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.mes-tab{font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer}
+.mes-tab.active{background:var(--teco);color:white;border-color:var(--teco)}
+/* LAB */
+.lab-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:8px;margin-bottom:1rem}
+.lab-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 12px}
+.lab-param{font-size:11px;font-weight:500;color:var(--muted);margin-bottom:5px}
+.lab-pt{display:flex;justify-content:space-between;font-size:11px;margin-bottom:2px}
+.lab-pt-lbl{color:var(--muted)}
+.lab-pt-val{font-weight:500}
+.lab-pt-val.ok{color:#1D9E75}.lab-pt-val.warn{color:#BA7517}.lab-pt-val.fail{color:#E24B4A}
+/* INV TABLE */
+.inv-wrap{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:1rem}
+.inv-table{width:100%;border-collapse:collapse;font-size:12px}
+.inv-table th{background:var(--light);padding:8px 10px;font-weight:500;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border)}
+.inv-table td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:middle}
+.inv-table tr:last-child td{border-bottom:none}
+.inv-table td.r{text-align:right}
+.inv-table th.r{text-align:right}
+.fin-val{font-weight:500;color:var(--teco)}
+.fin-val.warn{color:#BA7517}.fin-val.fail{color:#E24B4A}
+.stock-bar-bg{flex:1;background:var(--border);border-radius:3px;height:4px;overflow:hidden;min-width:40px}
+.stock-bar-fill{height:4px;border-radius:3px}
+.stock-mini{display:flex;align-items:center;gap:5px}
+.conc-inp{width:55px;font-size:11px;padding:3px 5px;border:1px solid var(--border);border-radius:5px;background:var(--light);color:var(--text);text-align:center}
+/* NOV */
+.nov-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.fbtn{font-size:11px;padding:3px 10px;border:1px solid var(--border);border-radius:20px;background:transparent;color:var(--muted);cursor:pointer}
+.fbtn.active{background:var(--teco);color:white;border-color:var(--teco)}
+.nov-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 14px;margin-bottom:7px}
+.nov-top{display:flex;justify-content:space-between;align-items:flex-start;gap:6px;margin-bottom:5px;flex-wrap:wrap}
+.badges{display:flex;gap:5px;flex-wrap:wrap}
+.badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:500}
+.badge-falla{background:#FCEBEB;color:#A32D2D}.badge-visita{background:#E6F1FB;color:#185FA5}.badge-obs{background:#EAF3DE;color:#3B6D11}
+.badge-abierta{background:#FCEBEB;color:#A32D2D}.badge-proceso{background:#FAEEDA;color:#854F0B}.badge-cerrada{background:#EAF3DE;color:#3B6D11}
+.badge-ptap{background:#E1F5EE;color:#0F6E56}.badge-ptard{background:#E6F1FB;color:#185FA5}
+.nov-date{font-size:10px;color:var(--muted)}
+.nov-desc{font-size:12px;margin-bottom:3px}
+.nov-acc{font-size:11px;color:var(--muted)}
+/* GENERAL */
+.plant-grid-2{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:12px;margin-bottom:1.25rem}
+.divider{height:1px;background:var(--border);margin:8px 0}
+
+/* FILTROS MES/AÑO */
+.filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;background:var(--card);border:1px solid var(--border);border-radius:10px}
+.filter-bar label{font-size:11px;color:var(--muted);font-weight:500}
+.filter-bar select{font-size:11px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:var(--light);color:var(--text);cursor:pointer}
+.filter-bar .btn-clear{font-size:11px;padding:4px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--muted);cursor:pointer}
+.filter-bar .btn-clear:hover{background:var(--light)}
+/* CONSOLIDADO MENSUAL QUIMICOS */
+.consol-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:1rem}
+.consol-table th{background:var(--teco);color:white;padding:8px 10px;font-size:10px;font-weight:500;text-align:left}
+.consol-table th.r{text-align:right}
+.consol-table td{padding:7px 10px;border-bottom:1px solid var(--border)}
+.consol-table td.r{text-align:right;font-weight:500}
+.consol-table tr:last-child td{border-bottom:none}
+.consol-table tr.total{background:rgba(0,0,144,0.04);font-weight:600}
+
+/* FOOTER */
+.footer{background:var(--teco-dl);padding:10px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;margin-top:10px}
+.footer span{font-size:10px;color:var(--muted)}
+.footer strong{color:var(--teco)}
+/* CONN STATUS */
+.conn-banner{padding:8px 14px;border-radius:8px;font-size:11px;margin-bottom:10px;display:none}
+.conn-banner.show{display:block}
+.conn-banner.ok{background:#EAF3DE;color:#3B6D11}
+.conn-banner.err{background:#FCEBEB;color:#A32D2D}
+.conn-banner.loading{background:#E6F1FB;color:#185FA5}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="hdr-left">
+    <div class="logo-box">
+      <img src="data:image/png;base64,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" alt="TECO y Nutresa">
+    </div>
+    <div class="hdr-titles">
+      <div class="sup">Sociedad Tecnologías Ecológicas S.A.S. — Unidad de Servicios al Usuario</div>
+      <div class="main">Dashboard operativo — Cliente: Grupo Nutresa</div>
+      <div class="hdr-date" id="hdr-date"></div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tab-bar">
+  <button class="tab active" onclick="switchTab('general')">General</button>
+  <button class="tab" onclick="switchTab('ptapd')">PTAP Diario</button>
+  <button class="tab" onclick="switchTab('ptapm')">PTAP Mensual</button>
+  <button class="tab" onclick="switchTab('ptard')">PTARD</button>
+  <button class="tab" onclick="switchTab('quimicos')">Químicos</button>
+  <button class="tab" onclick="switchTab('novedades')">Novedades</button>
+</div>
+
+<div id="view-general" class="view active"></div>
+<div id="view-ptapd" class="view"></div>
+<div id="view-ptapm" class="view"></div>
+<div id="view-ptard" class="view"></div>
+<div id="view-quimicos" class="view"></div>
+<div id="view-novedades" class="view"></div>
+
+<div class="footer">
+  <span>Datos actualizados al último registro disponible.</span>
+  <span><strong>TECO S.A.S.</strong> — Operador autorizado | Dashboard v1.0</span>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// CONFIGURACIÓN GOOGLE SHEETS — reemplazar URLs con las reales
+// ═══════════════════════════════════════════════════════════════════
+const SHEETS_URLS = {
+  ptap:      'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtFbVsGAiKDJloSHC6Sgv1WqNh4aaGJm8F0hgSjaaMLu_gD9_4OoPkQ6C7jPTQmg/pub?gid=98217999&single=true&output=csv', // URL CSV pestaña PTAP
+  ptap_mens: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtFbVsGAiKDJloSHC6Sgv1WqNh4aaGJm8F0hgSjaaMLu_gD9_4OoPkQ6C7jPTQmg/pub?gid=494163400&single=true&output=csv', // URL CSV pestaña PTAP_Mensual
+  ptard:     'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtFbVsGAiKDJloSHC6Sgv1WqNh4aaGJm8F0hgSjaaMLu_gD9_4OoPkQ6C7jPTQmg/pub?gid=1012191124&single=true&output=csv', // URL CSV pestaña PTARD
+  quimicos:  'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtFbVsGAiKDJloSHC6Sgv1WqNh4aaGJm8F0hgSjaaMLu_gD9_4OoPkQ6C7jPTQmg/pub?gid=1056030527&single=true&output=csv', // URL CSV pestaña Quimicos
+  novedades: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTtFbVsGAiKDJloSHC6Sgv1WqNh4aaGJm8F0hgSjaaMLu_gD9_4OoPkQ6C7jPTQmg/pub?gid=947930777&single=true&output=csv', // URL CSV pestaña Novedades
+};
+const USE_SHEETS = Object.values(SHEETS_URLS).some(u => u !== '');
+
+// ═══════════════════════════════════════════════════════════════════
+// DATOS DEMO (se usan cuando no hay URLs configuradas)
+// ═══════════════════════════════════════════════════════════════════
+const DEMO = {
+  ptap: [
+    {date:'2026-04-01',lec_ini:12540,lec_fin:12912,ent_pH:7.1,ent_caudal:4.0,sal_pH:7.2,sal_caudal:3.9,sal_cloro:0.9,tan_pH:7.1,tan_cloro:0.8,red_pH:7.0,red_cloro:0.6},
+    {date:'2026-05-01',lec_ini:14820,lec_fin:15220,ent_pH:7.0,ent_caudal:3.8,sal_pH:7.2,sal_caudal:3.7,sal_cloro:1.1,tan_pH:7.1,tan_cloro:1.0,red_pH:7.0,red_cloro:0.8},
+    {date:'2026-06-01',lec_ini:17100,lec_fin:17510,ent_pH:7.4,ent_caudal:4.3,sal_pH:7.5,sal_caudal:4.2,sal_cloro:1.4,tan_pH:7.3,tan_cloro:1.2,red_pH:7.2,red_cloro:1.0},
+    {date:'2026-06-21',lec_ini:18200,lec_fin:18614,ent_pH:7.2,ent_caudal:4.1,sal_pH:7.3,sal_caudal:4.0,sal_cloro:1.2,tan_pH:7.0,tan_cloro:1.0,red_pH:6.9,red_cloro:0.8},
+  ],
+  ptap_mens: [
+    {mes:'2026-04',punto:'Entrada PTAP',pH:7.2,temperatura:20,turbiedad:2.8,color:13,alcalinidad:118,sulfatos:46,hierro:0.25,cloro:0,coliformes_t:9,ecoli:2},
+    {mes:'2026-04',punto:'Salida PTAP',pH:7.4,temperatura:20,turbiedad:0.7,color:5,alcalinidad:112,sulfatos:45,hierro:0.04,cloro:1.2,coliformes_t:0,ecoli:0},
+    {mes:'2026-04',punto:'Red de distribución',pH:7.2,temperatura:21,turbiedad:0.9,color:7,alcalinidad:110,sulfatos:44,hierro:0.05,cloro:0.8,coliformes_t:0,ecoli:0},
+    {mes:'2026-05',punto:'Entrada PTAP',pH:7.1,temperatura:21,turbiedad:2.1,color:11,alcalinidad:116,sulfatos:44,hierro:0.22,cloro:0,coliformes_t:7,ecoli:1},
+    {mes:'2026-05',punto:'Salida PTAP',pH:7.3,temperatura:21,turbiedad:0.6,color:4,alcalinidad:109,sulfatos:43,hierro:0.03,cloro:1.3,coliformes_t:0,ecoli:0},
+    {mes:'2026-05',punto:'Red de distribución',pH:7.1,temperatura:22,turbiedad:0.8,color:6,alcalinidad:107,sulfatos:42,hierro:0.04,cloro:0.9,coliformes_t:0,ecoli:0},
+  ],
+  ptard: [
+    {date:'2026-04-15',ent_pH:6.9,ent_caudal:3.4,ent_DQO:290,sal_pH:7.2,sal_caudal:3.3,sal_cloro:0.6,sal_DQO:170,sal_ssed:5,horas_op:8,lm_ssed:null,lm_OD:null,lm_pH:null,lm_aspecto:''},
+    {date:'2026-05-15',ent_pH:7.2,ent_caudal:3.3,ent_DQO:280,sal_pH:7.4,sal_caudal:3.2,sal_cloro:0.8,sal_DQO:160,sal_ssed:4,horas_op:9,lm_ssed:null,lm_OD:null,lm_pH:null,lm_aspecto:''},
+    {date:'2026-06-21',ent_pH:7.1,ent_caudal:3.5,ent_DQO:295,sal_pH:7.3,sal_caudal:3.4,sal_cloro:0.8,sal_DQO:168,sal_ssed:4,horas_op:10,lm_ssed:null,lm_OD:null,lm_pH:null,lm_aspecto:''},
+  ],
+  quimicos: [
+    {date:'2026-06-21',planta:'PTAP',quimico:'PAC',ini:104,sale:13,ingresa:0,conc:17,costo_unit:2900,caudal_m3:13.2},
+    {date:'2026-06-21',planta:'PTAP',quimico:'Hipoclorito',ini:62,sale:9,ingresa:0,conc:13,costo_unit:4350,caudal_m3:13.2},
+    {date:'2026-06-21',planta:'PTAP',quimico:'Floculante',ini:23250,sale:900,ingresa:0,conc:100,costo_unit:0.018,caudal_m3:13.2},
+    {date:'2026-06-21',planta:'PTARD',quimico:'Hipoclorito',ini:30.4,sale:5.0,ingresa:0,conc:13,costo_unit:4350,caudal_m3:9.6},
+  ],
+  novedades: [
+    {id:1,date:'2026-05-03',plant:'PTAP',tipo:'falla',desc:'Bomba dosificadora PAC presenta ruido inusual y baja presión.',accion:'Pendiente revisión de impeller.',estado:'proceso'},
+    {id:2,date:'2026-06-02',plant:'PTARD',tipo:'falla',desc:'Sensor de pH fuera de servicio. Último valor: 6.8.',accion:'Pendiente reemplazo de electrodo.',estado:'abierta'},
+  ]
+};
+
+// ═══════════════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ═══════════════════════════════════════════════════════════════════
+let state = {
+  ptap: [...DEMO.ptap],
+  ptap_mens: [...DEMO.ptap_mens],
+  ptard: [...DEMO.ptard],
+  quimicos: [...DEMO.quimicos],
+  novedades: [...DEMO.novedades],
+};
+let charts = {};
+let mesSelMensual = '2026-05';
+let paramSelMensual = 'pH';
+let novFilter = 'todos';
+let novId = 3;
+
+let filterMes = '';
+let filterAnio = '';
+
+// ═══════════════════════════════════════════════════════════════════
+// CONSTANTES NORMATIVAS
+// ═══════════════════════════════════════════════════════════════════
+const LAB_PARAMS = [
+  {id:'pH',label:'pH',unit:'',min:6.5,max:9.0,norm:'6.5–9.0'},
+  {id:'temperatura',label:'Temperatura',unit:'°C',max:30,norm:'≤30°C'},
+  {id:'turbiedad',label:'Turbiedad',unit:'UNT',max:2,norm:'≤2 UNT'},
+  {id:'color',label:'Color aparente',unit:'UPC',max:15,norm:'≤15 UPC'},
+  {id:'alcalinidad',label:'Alcalinidad total',unit:'mg/L',max:200,norm:'≤200 mg/L'},
+  {id:'sulfatos',label:'Sulfatos',unit:'mg/L',max:250,norm:'≤250 mg/L'},
+  {id:'hierro',label:'Hierro total',unit:'mg/L',max:0.3,norm:'≤0.3 mg/L'},
+  {id:'cloro',label:'Cloro residual libre',unit:'mg/L',min:0.3,max:2.0,norm:'0.3–2.0 mg/L'},
+  {id:'coliformes_t',label:'Coliformes totales',unit:'UFC/100mL',max:0,norm:'0 UFC/100mL'},
+  {id:'ecoli',label:'E. coli',unit:'UFC/100mL',max:0,norm:'0 UFC/100mL'},
+];
+const LAB_POINTS = ['Entrada PTAP','Salida PTAP','Red de distribución'];
+const POINT_COLORS = {'Entrada PTAP':'#000090','Salida PTAP':'#1D9E75','Red de distribución':'#26C6DA'};
+const QUIMICOS_DEF = {
+  PTAP: [{id:'PAC',unit:'kg',conc:17,costo:2900},{id:'Hipoclorito',unit:'L',conc:13,costo:4350},{id:'Floculante',unit:'g',conc:100,costo:0.018}],
+  PTARD: [{id:'Hipoclorito',unit:'L',conc:13,costo:4350}]
+};
+const VOL_MENSUAL = [
+  {m:'Ene',p:380,r:270},{m:'Feb',p:355,r:258},{m:'Mar',p:397,r:277},
+  {m:'Abr',p:410,r:285},{m:'May',p:425,r:291},{m:'Jun',p:414,r:278},
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function gs(v,lim) {
+  if(v===null||v===undefined||v==='') return 'na';
+  if(lim.max===0&&v>0) return 'fail';
+  if(lim.max!==undefined&&v>lim.max) return 'fail';
+  if(lim.min!==undefined&&v<lim.min) return 'fail';
+  if(lim.max!==undefined&&lim.max>0&&v>lim.max*0.85) return 'warn';
+  return 'ok';
+}
+function fmt(v,d=2) { if(v===null||v===undefined||v==='') return '—'; return typeof v==='number'?parseFloat(v.toFixed(d)):v; }
+function dc(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function ts() { document.getElementById('hdr-date').textContent = 'Actualizado: '+new Date().toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'}); }
+function copyEl(id) {
+  const ta=document.getElementById(id); if(!ta||!ta.value.trim()) return;
+  navigator.clipboard.writeText(ta.value).then(()=>{
+    const btn=event.target.closest('button'); const orig=btn.textContent;
+    btn.textContent='✓ Copiado'; setTimeout(()=>btn.textContent=orig,2000);
+  });
+}
+function alertsBox(editId, alerts) {
+  let h=`<div class="alert-box"><div class="alert-hdr"><span class="alert-hdr-lbl">⚠ Alertas automáticas</span><button class="btn-sm" onclick="copyEl('${editId}')">Copiar</button></div>`;
+  if(alerts.length) {
+    alerts.forEach(a=>{ h+=`<div class="alert-item ${a.level}">${a.text}</div>`; });
+    h+=`<textarea class="alert-ta" id="${editId}">${alerts.map(a=>a.text).join('\n')}</textarea>`;
+  } else {
+    h+=`<div style="font-size:11px;color:#999">Sin alertas en el último registro.</div>`;
+    h+=`<textarea class="alert-ta" id="${editId}" placeholder="Agrega observaciones para el informe..."></textarea>`;
+  }
+  return h+'</div>';
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// CARGA DESDE GOOGLE SHEETS
+// ═══════════════════════════════════════════════════════════════════
+async function loadFromSheets() {
+  if(!USE_SHEETS) return;
+  const keys = Object.keys(SHEETS_URLS);
+  for(const key of keys) {
+    const url = SHEETS_URLS[key];
+    if(!url) continue;
+    try {
+      const r = await fetch(url);
+      const text = await r.text();
+      const rows = text.trim().split('\n').map(l=>l.split(','));
+      const headers = rows[0].map(h=>h.trim().replace(/"/g,''));
+      const data = rows.slice(1).map(row=>{
+        const obj={};
+        headers.forEach((h,i)=>{ const v=row[i]?row[i].trim().replace(/"/g,''):''; obj[h]=isNaN(v)||v===''?v:parseFloat(v); });
+        return obj;
+      });
+      state[key] = data;
+    } catch(e) { console.warn('Error cargando '+key, e); }
+  }
+  renderAll();
+}
+
+
+// ═══════════════════════════════════════════════════════════════════
+// FILTROS MES / AÑO
+// ═══════════════════════════════════════════════════════════════════
+function getMesesFromData(data) {
+  return [...new Set(data.map(r=>(r.date||r.mes||'').slice(0,7)).filter(Boolean))].sort();
+}
+function getAniosFromData(data) {
+  return [...new Set(data.map(r=>(r.date||r.mes||'').slice(0,4)).filter(Boolean))].sort();
+}
+function filterData(data, mes, anio) {
+  return data.filter(r=>{
+    const d = r.date||r.mes||'';
+    if(anio && !d.startsWith(anio)) return false;
+    if(mes && !d.startsWith(mes)) return false;
+    return true;
+  });
+}
+function filterBarHTML(id, data, onchange) {
+  const meses = getMesesFromData(data);
+  const anios = getAniosFromData(data);
+  return `<div class="filter-bar">
+    <label>Año:</label>
+    <select id="fil-anio-${id}" onchange="${onchange}">
+      <option value="">Todos</option>
+      ${anios.map(a=>`<option value="${a}" ${filterAnio===a?'selected':''}>${a}</option>`).join('')}
+    </select>
+    <label>Mes:</label>
+    <select id="fil-mes-${id}" onchange="${onchange}">
+      <option value="">Todos</option>
+      ${meses.map(m=>`<option value="${m}" ${filterMes===m?'selected':''}>${m}</option>`).join('')}
+    </select>
+    <button class="btn-clear" onclick="clearFilters('${id}','${onchange}')">Limpiar</button>
+    <span style="font-size:10px;color:var(--muted);margin-left:4px">${filterData(data,filterMes,filterAnio).length} registros</span>
+  </div>`;
+}
+function applyFilter(id) {
+  const a = document.getElementById('fil-anio-'+id);
+  const m = document.getElementById('fil-mes-'+id);
+  if(a) filterAnio = a.value;
+  if(m) filterMes = m.value;
+}
+function clearFilters(id, onchange) {
+  filterMes=''; filterAnio='';
+  const a=document.getElementById('fil-anio-'+id); if(a) a.value='';
+  const m=document.getElementById('fil-mes-'+id); if(m) m.value='';
+  eval(onchange.replace('()','()'));
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// VISTA GENERAL
+// ═══════════════════════════════════════════════════════════════════
+function renderGeneral() {
+  const cont = document.getElementById('view-general');
+  const lP = state.ptap.length ? state.ptap[state.ptap.length-1] : null;
+  const lR = state.ptard.length ? state.ptard[state.ptard.length-1] : null;
+  const pP = lP ? [
+    {l:'pH entrada',v:lP.ent_pH,lim:{min:6.5,max:9.0},u:''},
+    {l:'pH salida',v:lP.sal_pH,lim:{min:6.5,max:9.0},u:''},
+    {l:'Cloro salida',v:lP.sal_cloro,lim:{min:0.3,max:2.0},u:'mg/L'},
+    {l:'Cloro tanque',v:lP.tan_cloro,lim:{min:0.3,max:2.0},u:'mg/L'},
+    {l:'Cloro red',v:lP.red_cloro,lim:{min:0.3,max:2.0},u:'mg/L'},
+  ] : [];
+  const pR = lR ? [
+    {l:'pH entrada',v:lR.ent_pH,lim:{min:6.0,max:9.0},u:''},
+    {l:'pH salida',v:lR.sal_pH,lim:{min:6.0,max:9.0},u:''},
+    {l:'DQO salida',v:lR.sal_DQO,lim:{max:200},u:'mg/L'},
+    {l:'Sólidos sed.',v:lR.sal_ssed,lim:{max:10},u:'mL/L·h'},
+    {l:'Cloro salida',v:lR.sal_cloro,lim:{min:0.3,max:2.0},u:'mg/L'},
+  ] : [];
+  function cnt(ps){let ok=0,w=0,f=0;ps.forEach(p=>{const s=gs(p.v,p.lim);if(s==='ok')ok++;else if(s==='warn')w++;else if(s==='fail')f++;});return{ok,w,f};}
+  const sP=cnt(pP),sR=cnt(pR);
+  const vol=lP?(lP.lec_fin-lP.lec_ini):0;
+  const ef=lR&&lR.ent_DQO&&lR.sal_DQO?Math.round((1-lR.sal_DQO/lR.ent_DQO)*100):null;
+  // Volumen mensual calculado desde datos reales
+  const mesActual=lP?(lP.date||'').slice(0,7):'';
+  const volMesPTAP=parseFloat(state.ptap.filter(r=>(r.date||'').startsWith(mesActual)).reduce((s,r)=>s+(parseFloat(r.lec_fin)||0)-(parseFloat(r.lec_ini)||0),0).toFixed(1));
+  const volMesPTARD=parseFloat(state.ptard.filter(r=>(r.date||'').startsWith(mesActual)).reduce((s,r)=>{const h=parseFloat(r.horas_op)||0;const q=parseFloat(r.ent_caudal)||0;return s+(h>0&&q>0?q*h*3600/1000:0);},0).toFixed(1));
+  const mesesGraf=[...new Set(state.ptap.map(r=>(r.date||'').slice(0,7)).filter(Boolean))].sort();
+  const volGrafPTAP=mesesGraf.map(m=>parseFloat(state.ptap.filter(r=>(r.date||'').startsWith(m)).reduce((s,r)=>s+(parseFloat(r.lec_fin)||0)-(parseFloat(r.lec_ini)||0),0).toFixed(1)));
+  const volGrafPTARD=mesesGraf.map(m=>parseFloat(state.ptard.filter(r=>(r.date||'').startsWith(m)).reduce((s,r)=>{const h=parseFloat(r.horas_op)||0;const q=parseFloat(r.ent_caudal)||0;return s+(h>0&&q>0?q*h*3600/1000:0);},0).toFixed(1)));
+  function pcard(name,norm,params,st,date,extra){
+    let rows='';
+    params.forEach(p=>{const s=gs(p.v,p.lim);rows+=`<div class="prow ${s}"><span class="plbl">${p.l}</span><div class="pright"><span class="pval ${s}">${fmt(p.v,2)}${p.u?' '+p.u:''}</span><span class="dot ${s}"></span></div></div>`;});
+    return`<div class="card"><div class="card-hdr"><div><div class="card-title">${name}</div><div class="card-sub">${norm}</div></div><span class="card-date">${date||'—'}</span></div>
+    <div class="st-row"><div class="st-pill"><div class="n ok">${st.ok}</div><div class="l">En regla</div></div><div class="st-pill"><div class="n warn">${st.w}</div><div class="l">Precaución</div></div><div class="st-pill"><div class="n fail">${st.f}</div><div class="l">Incumplimiento</div></div></div>
+    <div class="sec">Parámetros clave</div><div class="plist">${rows}</div>
+    <div class="divider"></div><div class="sec">Operación</div>${extra}</div>`;
+  }
+  let h=`<div class="kpi-grid">
+    <div class="kpi hl"><div class="lbl">Agua tratada hoy PTAP</div><div class="val cyan">${fmt(vol,0)} m³</div></div>
+    <div class="kpi hl"><div class="lbl">Volumen mes PTAP (${mesActual})</div><div class="val cyan">${volMesPTAP} m³</div></div>
+    <div class="kpi hl"><div class="lbl">Volumen mes PTARD (${mesActual})</div><div class="val cyan">${volMesPTARD} m³</div></div>
+    <div class="kpi"><div class="lbl">Parámetros en regla</div><div class="val ok">${sP.ok+sR.ok}</div></div>
+    <div class="kpi"><div class="lbl">En precaución</div><div class="val warn">${sP.w+sR.w}</div></div>
+    <div class="kpi"><div class="lbl">Incumplimientos</div><div class="val fail">${sP.f+sR.f}</div></div>
+    <div class="kpi"><div class="lbl">Eficiencia DQO PTARD</div><div class="val ${ef>=60?'ok':ef>=40?'warn':'fail'}">${ef!==null?ef+'%':'—'}</div></div>
+  </div>
+  <div class="plant-grid-2">
+    ${pcard('PTAP — Agua potable','Res. 2115 de 2007',pP,sP,lP?.date,`<div class="vrow"><span class="vlbl">Agua tratada hoy</span><span class="vval">${fmt(vol,0)} m³</span></div><div class="vrow"><span class="vlbl">Volumen mes ${mesActual}</span><span class="vval">${volMesPTAP} m³</span></div>`)}
+    ${pcard('PTARD — Aguas residuales','Res. 0631 de 2015',pR,sR,lR?.date,`<div class="vrow"><span class="vlbl">Eficiencia DQO</span><span class="vval" style="color:${ef>=60?'#1D9E75':ef>=40?'#BA7517':'#E24B4A'}">${ef!==null?ef+'%':'—'}</span></div><div class="vrow"><span class="vlbl">DQO salida / límite</span><span class="vval">${fmt(lR?.sal_DQO,0)} / 200 mg/L</span></div><div class="vrow"><span class="vlbl">Volumen mes ${mesActual}</span><span class="vval">${volMesPTARD} m³</span></div>`)}
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><span class="chart-ttl">Volumen tratado mensual (m³)</span>
+    <div class="legend"><span><span class="ld" style="background:#000090"></span>PTAP</span><span><span class="ld" style="background:#26C6DA"></span>PTARD</span></div></div>
+    <div style="position:relative;height:180px"><canvas id="chart-gen" role="img" aria-label="Volumen mensual"></canvas></div>
+  </div>`;
+  cont.innerHTML=h;
+  setTimeout(()=>{
+    dc('chart-gen');
+    const c=document.getElementById('chart-gen');if(!c)return;
+    charts['chart-gen']=new Chart(c,{type:'bar',data:{labels:mesesGraf,datasets:[
+      {label:'PTAP',data:volGrafPTAP,backgroundColor:'rgba(0,0,144,0.72)',borderColor:'#000090',borderWidth:1,borderRadius:3},
+      {label:'PTARD',data:volGrafPTARD,backgroundColor:'rgba(38,198,218,0.72)',borderColor:'#26C6DA',borderWidth:1,borderRadius:3},
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:11}},grid:{display:false}},y:{ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.05)'},title:{display:true,text:'m³',font:{size:10}}}}}});
+  },60);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PTAP DIARIO
+// ═══════════════════════════════════════════════════════════════════
+function renderPtapDiario() {
+  applyFilter('ptapd');
+  const cont=document.getElementById('view-ptapd');
+  const datos=filterData(state.ptap, filterMes, filterAnio);
+  const last=datos.length?datos[datos.length-1]:null;
+  const vol=last?(last.lec_fin-last.lec_ini):0;
+  const totalVol=datos.reduce((s,r)=>s+(r.lec_fin-r.lec_ini),0);
+  let h=filterBarHTML('ptapd',state.ptap,"renderPtapDiario()");
+  h+=`<div class="kpi-grid">
+    <div class="kpi hl"><div class="lbl">Agua tratada (Fin − Ini) m³</div><div class="val blue">${fmt(vol,1)}</div></div>
+    <div class="kpi"><div class="lbl">Lectura actual (m³)</div><div class="val">${last?last.lec_fin.toLocaleString('es-CO'):'—'}</div></div>
+    <div class="kpi"><div class="lbl">Total acumulado (m³)</div><div class="val">${fmt(totalVol,0)}</div></div>
+    <div class="kpi"><div class="lbl">Último registro</div><div class="val" style="font-size:13px">${last?last.date:'—'}</div></div>
+  </div>
+  <div class="card"><div class="card-hdr"><span class="card-title">Contador de caudal</span><span class="card-sub">Últimos 5 registros</span></div>
+  <div class="counter-row">`;
+  datos.slice(-5).reverse().forEach(r=>{
+    h+=`<div class="c-stat"><div class="l">${r.date}</div><div class="v">${fmt(r.lec_fin-r.lec_ini,1)} m³</div><div style="font-size:10px;color:#999">${r.lec_ini.toLocaleString()} → ${r.lec_fin.toLocaleString()}</div></div>`;
+  });
+  h+=`</div></div>
+  <div class="sec">Última lectura por punto — ${last?last.date:'—'}</div>
+  <div class="point-grid">
+    <div class="point-card"><div class="point-title">Entrada PTAP</div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.ent_pH,{min:6.5,max:9.0})}">${fmt(last?.ent_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Caudal (L/s)</span><span class="pp-val ok">${fmt(last?.ent_caudal,1)}</span></div>
+    </div>
+    <div class="point-card"><div class="point-title">Salida PTAP</div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.sal_pH,{min:6.5,max:9.0})}">${fmt(last?.sal_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Caudal (L/s)</span><span class="pp-val ok">${fmt(last?.sal_caudal,1)}</span></div>
+      <div class="pp"><span class="pp-name">Cloro residual (mg/L)</span><span class="pp-val ${gs(last?.sal_cloro,{min:0.3,max:2.0})}">${fmt(last?.sal_cloro,2)}</span></div>
+    </div>
+    <div class="point-card"><div class="point-title">Tanque almacenamiento</div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.tan_pH,{min:6.5,max:9.0})}">${fmt(last?.tan_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Cloro residual (mg/L)</span><span class="pp-val ${gs(last?.tan_cloro,{min:0.3,max:2.0})}">${fmt(last?.tan_cloro,2)}</span></div>
+    </div>
+    <div class="point-card"><div class="point-title">Red de distribución</div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.red_pH,{min:6.5,max:9.0})}">${fmt(last?.red_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Cloro residual (mg/L)</span><span class="pp-val ${gs(last?.red_cloro,{min:0.3,max:2.0})}">${fmt(last?.red_cloro,2)}</span></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><span class="chart-ttl">Agua tratada diaria (m³)</span></div>
+    <div style="position:relative;height:150px"><canvas id="chart-vol-d" role="img" aria-label="m3 diarios"></canvas></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><span class="chart-ttl">Tendencia por punto</span>
+    <select class="chart-sel" id="dsel" onchange="drawDiarioChart(this.value)">
+      <option value="pH">pH</option><option value="cloro">Cloro residual</option><option value="caudal">Caudal</option>
+    </select></div>
+    <div class="legend" id="d-legend"></div>
+    <div style="position:relative;height:170px"><canvas id="chart-diario" role="img" aria-label="Tendencia diaria"></canvas></div>
+  </div>`;
+  const alerts=genAlertsDiario(last);
+  h+=alertsBox('ae-ptapd',alerts);
+  h+=`<div class="sec">Registrar lectura diaria</div>
+  <div class="form-block">
+    <div class="form-grid"><div><label>Fecha</label><input type="date" id="dd-date"></div><div><label>Lectura inicial (m³)</label><input type="number" step="any" id="dd-ini"></div><div><label>Lectura final (m³)</label><input type="number" step="any" id="dd-fin"></div></div>
+    <div class="subsec">Entrada PTAP</div><div class="form-grid"><div><label>pH</label><input type="number" step="any" id="dd-eph" placeholder="7.0"></div><div><label>Caudal (L/s)</label><input type="number" step="any" id="dd-ecq" placeholder="4.0"></div></div>
+    <div class="subsec">Salida PTAP</div><div class="form-grid"><div><label>pH</label><input type="number" step="any" id="dd-sph" placeholder="7.0"></div><div><label>Caudal (L/s)</label><input type="number" step="any" id="dd-scq"></div><div><label>Cloro (mg/L)</label><input type="number" step="any" id="dd-scl" placeholder="1.0"></div></div>
+    <div class="subsec">Tanque</div><div class="form-grid"><div><label>pH</label><input type="number" step="any" id="dd-tph"></div><div><label>Cloro (mg/L)</label><input type="number" step="any" id="dd-tcl" placeholder="0.9"></div></div>
+    <div class="subsec">Red de distribución</div><div class="form-grid"><div><label>pH</label><input type="number" step="any" id="dd-rph"></div><div><label>Cloro (mg/L)</label><input type="number" step="any" id="dd-rcl" placeholder="0.8"></div></div>
+    <button class="btn" onclick="saveDiario()">Guardar registro</button>
+  </div>`;
+  cont.innerHTML=h;
+  const el=document.getElementById('dd-date'); if(el) el.value=new Date().toISOString().slice(0,10);
+  setTimeout(()=>{drawVolChart();drawDiarioChart('pH');},60);
+}
+function genAlertsDiario(last){
+  if(!last) return [];
+  const ch=[{k:'ent_pH',l:'pH Entrada',min:6.5,max:9.0},{k:'sal_pH',l:'pH Salida',min:6.5,max:9.0},{k:'sal_cloro',l:'Cloro Salida',min:0.3,max:2.0},{k:'tan_pH',l:'pH Tanque',min:6.5,max:9.0},{k:'tan_cloro',l:'Cloro Tanque',min:0.3,max:2.0},{k:'red_pH',l:'pH Red',min:6.5,max:9.0},{k:'red_cloro',l:'Cloro Red',min:0.3,max:2.0}];
+  const al=[];
+  ch.forEach(c=>{const v=last[c.k];if(v===null||v===undefined)return;if(v>c.max)al.push({level:'fail',text:`${c.l} en incumplimiento: ${fmt(v,2)} (límite: ${c.min}–${c.max}).`});else if(v<c.min)al.push({level:'fail',text:`${c.l} por debajo del mínimo: ${fmt(v,2)} (mín: ${c.min}).`});else if(c.max&&v>c.max*0.88)al.push({level:'warn',text:`${c.l} en precaución: ${fmt(v,2)}.`});});
+  return al;
+}
+function drawVolChart(){
+  dc('chart-vol-d'); const c=document.getElementById('chart-vol-d'); if(!c) return;
+  const datosVol=filterData(state.ptap,filterMes,filterAnio);
+  charts['chart-vol-d']=new Chart(c,{type:'bar',data:{labels:datosVol.map(r=>r.date),datasets:[{label:'m³',data:datosVol.map(r=>r.lec_fin-r.lec_ini),backgroundColor:'rgba(0,0,144,0.6)',borderColor:'#000090',borderWidth:1}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxRotation:30,autoSkip:false},grid:{display:false}},y:{ticks:{font:{size:10}}}}}});
+}
+function drawDiarioChart(param){
+  dc('chart-diario'); const c=document.getElementById('chart-diario'); if(!c) return;
+  const labels=state.ptap.map(r=>r.date);
+  const datosD=filterData(state.ptap,filterMes,filterAnio);
+  const map={pH:[{k:'ent_pH',l:'Entrada',c:'#000090'},{k:'sal_pH',l:'Salida',c:'#1D9E75'},{k:'tan_pH',l:'Tanque',c:'#BA7517'},{k:'red_pH',l:'Red',c:'#26C6DA'}],cloro:[{k:'sal_cloro',l:'Salida',c:'#1D9E75'},{k:'tan_cloro',l:'Tanque',c:'#BA7517'},{k:'red_cloro',l:'Red',c:'#26C6DA'}],caudal:[{k:'ent_caudal',l:'Entrada',c:'#000090'},{k:'sal_caudal',l:'Salida',c:'#1D9E75'}]};
+  const series=map[param]||map.pH;
+  const leg=document.getElementById('d-legend');
+  if(leg) leg.innerHTML=series.map(s=>`<span><span class="ld" style="background:${s.c}"></span>${s.l}</span>`).join('');
+  const ds=series.map(s=>({label:s.l,data:datosD.map(r=>r[s.k]||null),borderColor:s.c,backgroundColor:s.c+'18',pointRadius:4,tension:0.3,borderWidth:2,fill:false}));
+  if(param==='cloro'){ds.push({label:'Mín',data:labels.map(()=>0.3),borderColor:'#BA7517',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false});ds.push({label:'Máx',data:labels.map(()=>2.0),borderColor:'#E24B4A',borderDash:[4,3],borderWidth:1,pointRadius:0,fill:false});}
+  charts['chart-diario']=new Chart(c,{type:'line',data:{labels:datosD.map(r=>r.date),datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxRotation:30,autoSkip:false},grid:{color:'rgba(0,0,0,0.04)'}},y:{ticks:{font:{size:10}},grid:{color:'rgba(0,0,0,0.04)'}}}}});
+}
+function saveDiario(){
+  const dv=document.getElementById('dd-date').value; if(!dv){alert('Ingresa fecha.');return;}
+  const g=id=>{const el=document.getElementById(id);return el&&el.value!==''?parseFloat(el.value):null;};
+  state.ptap.push({date:dv,lec_ini:g('dd-ini')||0,lec_fin:g('dd-fin')||0,ent_pH:g('dd-eph'),ent_caudal:g('dd-ecq'),sal_pH:g('dd-sph'),sal_caudal:g('dd-scq'),sal_cloro:g('dd-scl'),tan_pH:g('dd-tph'),tan_cloro:g('dd-tcl'),red_pH:g('dd-rph'),red_cloro:g('dd-rcl')});
+  state.ptap.sort((a,b)=>a.date.localeCompare(b.date));
+  renderPtapDiario(); renderGeneral(); ts();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PTAP MENSUAL
+// ═══════════════════════════════════════════════════════════════════
+function getMeses(){ return [...new Set(state.ptap_mens.map(r=>r.mes))].sort(); }
+function renderPtapMensual(){
+  const cont=document.getElementById('view-ptapm');
+  const meses=getMeses();
+  if(!meses.includes(mesSelMensual)) mesSelMensual=meses[meses.length-1]||'';
+  const md=state.ptap_mens.filter(r=>r.mes===mesSelMensual);
+  let h=filterBarHTML('ptapm',state.ptap_mens,"renderPtapMensual()");
+  h+=`<div class="sec">Mes seleccionado</div><div class="mes-tabs">`;
+  meses.forEach(m=>{ h+=`<button class="mes-tab ${m===mesSelMensual?'active':''}" onclick="selMes('${m}')">${m}</button>`; });
+  h+=`</div><div class="sec">Resultados laboratorio — ${mesSelMensual}</div><div class="lab-grid">`;
+  LAB_PARAMS.forEach(p=>{
+    h+=`<div class="lab-card"><div class="lab-param">${p.label} <span style="font-size:10px;font-weight:400;color:#999">${p.norm}</span></div>`;
+    LAB_POINTS.forEach(pt=>{
+      const row=md.find(r=>r.punto===pt); const val=row?row[p.id]:null;
+      const s=val!==null?gs(val,p):'na';
+      h+=`<div class="lab-pt"><span class="lab-pt-lbl">${pt.replace('PTAP','').replace('de ','').trim()||pt}</span><span class="lab-pt-val ${s}">${val!==null?fmt(val,2):'—'}${p.unit?' '+p.unit:''}</span></div>`;
+    });
+    h+=`</div>`;
+  });
+  h+=`</div>
+  <div class="chart-card">
+    <div class="chart-hdr"><span class="chart-ttl">Comparativo mes a mes</span>
+    <select class="chart-sel" id="msel" onchange="drawMensualChart(this.value)">
+      ${LAB_PARAMS.map(p=>`<option value="${p.id}" ${p.id===paramSelMensual?'selected':''}>${p.label}</option>`).join('')}
+    </select></div>
+    <div class="legend">${LAB_POINTS.map(pt=>`<span><span class="ld" style="background:${POINT_COLORS[pt]}"></span>${pt.replace('PTAP','').replace('de ','').trim()||pt}</span>`).join('')}</div>
+    <div style="position:relative;height:190px"><canvas id="chart-mensual" role="img" aria-label="Lab mensual"></canvas></div>
+  </div>`;
+  const mal=[];
+  md.forEach(r=>{LAB_PARAMS.forEach(p=>{const v=r[p.id];if(v===null||v===undefined)return;const s=gs(v,p);if(s==='fail')mal.push({level:'fail',text:`${p.label} en ${r.punto}: ${fmt(v,2)} ${p.unit} — incumplimiento Res. 2115 (${p.norm}).`});else if(s==='warn')mal.push({level:'warn',text:`${p.label} en ${r.punto}: ${fmt(v,2)} ${p.unit} — precaución (${p.norm}).`});});});
+  h+=alertsBox('ae-ptapm',mal);
+  h+=`<div class="sec">Registrar resultado laboratorio</div>
+  <div class="form-block"><div class="form-grid">
+    <div><label>Mes (AAAA-MM)</label><input type="month" id="ml-mes"></div>
+    <div><label>Punto</label><select id="ml-punto">${LAB_POINTS.map(p=>`<option>${p}</option>`).join('')}</select></div>
+    ${LAB_PARAMS.map(p=>`<div><label>${p.label}${p.unit?' ('+p.unit+')':''}</label><input type="number" step="any" id="ml-${p.id}" placeholder="0"></div>`).join('')}
+  </div><button class="btn" onclick="saveMensual()">Guardar resultado</button></div>`;
+  cont.innerHTML=h;
+  const el=document.getElementById('ml-mes'); if(el) el.value=new Date().toISOString().slice(0,7);
+  setTimeout(()=>drawMensualChart(paramSelMensual),60);
+}
+function selMes(m){ mesSelMensual=m; renderPtapMensual(); }
+function drawMensualChart(paramId){
+  paramSelMensual=paramId; dc('chart-mensual');
+  const c=document.getElementById('chart-mensual'); if(!c) return;
+  const meses=getMeses();
+  const ds=LAB_POINTS.map(pt=>({label:pt,data:meses.map(m=>{const r=state.ptap_mens.find(d=>d.mes===m&&d.punto===pt);return r?r[paramId]:null;}),borderColor:POINT_COLORS[pt],backgroundColor:POINT_COLORS[pt]+'15',pointRadius:5,tension:0.3,borderWidth:2,fill:false}));
+  const p=LAB_PARAMS.find(x=>x.id===paramId);
+  if(p?.max!==undefined) ds.push({label:'Límite',data:meses.map(()=>p.max),borderColor:'#E24B4A',borderDash:[5,3],borderWidth:1.5,pointRadius:0,fill:false});
+  if(p?.min!==undefined) ds.push({label:'Mín',data:meses.map(()=>p.min),borderColor:'#BA7517',borderDash:[5,3],borderWidth:1.5,pointRadius:0,fill:false});
+  charts['chart-mensual']=new Chart(c,{type:'line',data:{labels:meses,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxRotation:30,autoSkip:false},grid:{color:'rgba(0,0,0,0.04)'}},y:{ticks:{font:{size:10}}}}}});
+}
+function saveMensual(){
+  const mv=document.getElementById('ml-mes').value; if(!mv){alert('Ingresa mes.');return;}
+  const pt=document.getElementById('ml-punto').value;
+  const g=id=>{const el=document.getElementById(id);return el&&el.value!==''?parseFloat(el.value):null;};
+  const rec={mes:mv,punto:pt}; LAB_PARAMS.forEach(p=>{rec[p.id]=g('ml-'+p.id);});
+  state.ptap_mens=state.ptap_mens.filter(r=>!(r.mes===mv&&r.punto===pt));
+  state.ptap_mens.push(rec); state.ptap_mens.sort((a,b)=>a.mes.localeCompare(b.mes));
+  mesSelMensual=mv; renderPtapMensual(); ts();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PTARD
+// ═══════════════════════════════════════════════════════════════════
+function renderPtard(){
+  applyFilter('ptard');
+  const cont=document.getElementById('view-ptard');
+  const datosR=filterData(state.ptard,filterMes,filterAnio);
+  const last=datosR.length?datosR[datosR.length-1]:null;
+  const ef=last&&last.ent_DQO&&last.sal_DQO?Math.round((1-last.sal_DQO/last.ent_DQO)*100):null;
+  const caudalDiario=last&&last.ent_caudal&&last.horas_op?parseFloat((last.ent_caudal*last.horas_op*3600/1000).toFixed(1)):null;
+  let h=`<div class="kpi-grid">
+    <div class="kpi"><div class="lbl">DQO salida (mg/L)</div><div class="val ${gs(last?.sal_DQO,{max:200})}">${last?fmt(last.sal_DQO,0):'—'}</div></div>
+    <div class="kpi"><div class="lbl">Eficiencia DQO (%)</div><div class="val ${ef>=60?'ok':ef>=40?'warn':'fail'}">${ef!==null?ef+'%':'—'}</div></div>
+    <div class="kpi"><div class="lbl">Sólidos sed. (mL/L·h)</div><div class="val ${gs(last?.sal_ssed,{max:10})}">${last?fmt(last.sal_ssed,1):'—'}</div></div>
+    <div class="kpi"><div class="lbl">Caudal diario (m³/d)</div><div class="val blue">${caudalDiario!==null?caudalDiario:'—'}</div></div>
+    <div class="kpi"><div class="lbl">Último registro</div><div class="val" style="font-size:13px">${last?last.date:'—'}</div></div>
+  </div>`;
+  h+=filterBarHTML('ptard',state.ptard,"renderPtard()");
+  h+=`<div class="sec">Última lectura — ${last?last.date:'—'}</div>
+  <div class="point-grid">
+    <div class="point-card"><div class="point-title">Entrada PTARD</div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.ent_pH,{min:6.0,max:9.0})}">${fmt(last?.ent_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Caudal (L/s)</span><span class="pp-val ok">${fmt(last?.ent_caudal,1)}</span></div>
+      <div class="pp"><span class="pp-name">DQO (mg/L)</span><span class="pp-val ok">${fmt(last?.ent_DQO,0)}</span></div>
+    </div>
+    <div class="point-card"><div class="point-title">Salida PTARD</div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.sal_pH,{min:6.0,max:9.0})}">${fmt(last?.sal_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Caudal (L/s)</span><span class="pp-val ok">${fmt(last?.sal_caudal,1)}</span></div>
+      <div class="pp"><span class="pp-name">DQO (mg/L)</span><span class="pp-val ${gs(last?.sal_DQO,{max:200})}">${fmt(last?.sal_DQO,0)}</span></div>
+      <div class="pp"><span class="pp-name">Cloro residual (mg/L)</span><span class="pp-val ${gs(last?.sal_cloro,{min:0.3,max:2.0})}">${fmt(last?.sal_cloro,2)}</span></div>
+      <div class="pp"><span class="pp-name">Horas operación (h/d)</span><span class="pp-val ok">${fmt(last?.horas_op,1)}</span></div>
+      <div class="pp"><span class="pp-name">Caudal diario (m³/d)</span><span class="pp-val blue">${caudalDiario!==null?caudalDiario:'—'}</span></div>
+      <div class="pp"><span class="pp-name">Sólidos sed. (mL/L·h)</span><span class="pp-val ${gs(last?.sal_ssed,{max:10})}">${fmt(last?.sal_ssed,1)}</span></div>
+    </div>
+    <div class="point-card" style="border-top:3px solid #000090">
+      <div class="point-title reactor">Licor mezclado — Reactor</div>
+      <div class="pp"><span class="pp-name">SSed (mL/L·h)</span><span class="pp-val ${last?.lm_ssed?'ok':'na'}">${fmt(last?.lm_ssed,1)}</span></div>
+      <div class="pp"><span class="pp-name">Oxígeno disuelto (mg/L)</span><span class="pp-val ${gs(last?.lm_OD,{min:1.0})}">${fmt(last?.lm_OD,2)}</span></div>
+      <div class="pp"><span class="pp-name">pH</span><span class="pp-val ${gs(last?.lm_pH,{min:6.5,max:8.5})}">${fmt(last?.lm_pH,2)}</span></div>
+      <div class="pp"><span class="pp-name">Aspecto</span><span class="aspect-tag">${last?.lm_aspecto||'—'}</span></div>
+      <div style="font-size:10px;color:#999;margin-top:6px">Medición pendiente de inicio</div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-hdr"><span class="chart-ttl">Tendencia histórica</span>
+    <select class="chart-sel" id="rsel" onchange="drawPtardChart(this.value)">
+      <option value="dqo">DQO entrada vs salida</option>
+      <option value="pH">pH</option>
+      <option value="ssed">Sólidos sedimentables</option>
+      <option value="caudal">Caudal</option>
+      <option value="OD">OD licor mezclado</option>
+      <option value="horas">Horas de operación</option>
+    </select></div>
+    <div class="legend" id="r-legend"></div>
+    <div style="position:relative;height:190px"><canvas id="chart-ptard" role="img" aria-label="Tendencia PTARD"></canvas></div>
+  </div>`;
+  const ral=genAlertsPtard(last);
+  h+=alertsBox('ae-ptard',ral);
+  h+=`<div class="sec">Registrar lectura diaria</div>
+  <div class="form-block">
+    <div class="form-grid"><div><label>Fecha</label><input type="date" id="pd-date"></div></div>
+    <div class="subsec">Entrada PTARD</div>
+    <div class="form-grid"><div><label>pH</label><input type="number" step="any" id="pd-eph" placeholder="7.0"></div><div><label>Caudal (L/s)</label><input type="number" step="any" id="pd-ecq"></div><div><label>DQO (mg/L)</label><input type="number" step="any" id="pd-edqo" placeholder="300"></div></div>
+    <div class="subsec">Salida PTARD</div>
+    <div class="form-grid"><div><label>pH</label><input type="number" step="any" id="pd-sph"></div><div><label>Caudal (L/s)</label><input type="number" step="any" id="pd-scq"></div><div><label>DQO (mg/L)</label><input type="number" step="any" id="pd-sdqo" placeholder="160"></div><div><label>Cloro (mg/L)</label><input type="number" step="any" id="pd-scl" placeholder="0.7"></div><div><label>Sólidos sed. (mL/L·h)</label><input type="number" step="any" id="pd-ssed" placeholder="5"></div></div>
+    <div class="subsec">Operación</div>
+    <div class="form-grid"><div><label>Horas de operación (h/d)</label><input type="number" step="0.5" id="pd-horas" placeholder="8"></div></div>
+    <div class="subsec">Licor mezclado</div>
+    <div class="form-grid"><div><label>SSed (mL/L·h)</label><input type="number" step="any" id="pd-lssed"></div><div><label>OD (mg/L)</label><input type="number" step="any" id="pd-lod"></div><div><label>pH</label><input type="number" step="any" id="pd-lph"></div><div><label>Aspecto</label><input type="text" id="pd-lasp" placeholder="café claro..."></div></div>
+    <button class="btn" onclick="savePtard()">Guardar registro</button>
+  </div>`;
+  cont.innerHTML=h;
+  const el=document.getElementById('pd-date'); if(el) el.value=new Date().toISOString().slice(0,10);
+  setTimeout(()=>drawPtardChart('dqo'),60);
+}
+function genAlertsPtard(last){
+  if(!last) return [];
+  const al=[];
+  if(last.sal_DQO>200) al.push({level:'fail',text:`DQO salida en incumplimiento: ${fmt(last.sal_DQO,0)} mg/L (límite Res. 0631: ≤200 mg/L).`});
+  else if(last.sal_DQO>170) al.push({level:'warn',text:`DQO salida en precaución: ${fmt(last.sal_DQO,0)} mg/L (límite: ≤200 mg/L).`});
+  if(last.sal_ssed>10) al.push({level:'fail',text:`Sólidos sedimentables salida: ${fmt(last.sal_ssed,1)} mL/L·h (límite: ≤10 mL/L·h).`});
+  if(last.lm_OD!==null&&last.lm_OD<1.0) al.push({level:'fail',text:`OD licor mezclado bajo: ${fmt(last.lm_OD,2)} mg/L (mínimo recomendado: 1.0 mg/L).`});
+  if(last.sal_pH<6.0||last.sal_pH>9.0) al.push({level:'fail',text:`pH salida fuera de rango: ${fmt(last.sal_pH,2)} (límite: 6.0–9.0).`});
+  const ef=last.ent_DQO&&last.sal_DQO?Math.round((1-last.sal_DQO/last.ent_DQO)*100):null;
+  if(ef!==null&&ef<40) al.push({level:'warn',text:`Eficiencia DQO baja: ${ef}%. Revisar condiciones del reactor biológico.`});
+  return al;
+}
+function drawPtardChart(param){
+  dc('chart-ptard'); const c=document.getElementById('chart-ptard'); if(!c) return;
+  const datosRG=filterData(state.ptard,filterMes,filterAnio);
+  const labels=datosRG.map(r=>r.date);
+  const cfgs={
+    dqo:{s:[{k:'ent_DQO',l:'DQO entrada',c:'#000090'},{k:'sal_DQO',l:'DQO salida',c:'#1D9E75'}],lim:{max:200,c:'#E24B4A'}},
+    pH:{s:[{k:'ent_pH',l:'pH entrada',c:'#000090'},{k:'sal_pH',l:'pH salida',c:'#1D9E75'}],lim:{min:6.0,max:9.0,c:'#BA7517'}},
+    ssed:{s:[{k:'sal_ssed',l:'Sólidos sed.',c:'#534AB7'}],lim:{max:10,c:'#E24B4A'}},
+    caudal:{s:[{k:'ent_caudal',l:'Caudal entrada',c:'#000090'},{k:'sal_caudal',l:'Caudal salida',c:'#1D9E75'}],lim:null},
+    OD:{s:[{k:'lm_OD',l:'OD licor',c:'#534AB7'}],lim:{min:1.0,c:'#BA7517'}},
+    horas:{s:[{k:'horas_op',l:'Horas operación',c:'#000090'}],lim:null},
+  };
+  const cfg=cfgs[param]||cfgs.dqo;
+  const leg=document.getElementById('r-legend');
+  if(leg) leg.innerHTML=cfg.s.map(s=>`<span><span class="ld" style="background:${s.c}"></span>${s.l}</span>`).join('');
+  const ds=cfg.s.map(s=>({label:s.l,data:datosRG.map(r=>r[s.k]??null),borderColor:s.c,backgroundColor:s.c+'15',pointRadius:4,tension:0.3,borderWidth:2,fill:false}));
+  if(cfg.lim?.max) ds.push({label:'Límite',data:labels.map(()=>cfg.lim.max),borderColor:cfg.lim.c,borderDash:[5,3],borderWidth:1.5,pointRadius:0,fill:false});
+  if(cfg.lim?.min) ds.push({label:'Mín',data:labels.map(()=>cfg.lim.min),borderColor:cfg.lim.c,borderDash:[5,3],borderWidth:1.5,pointRadius:0,fill:false});
+  charts['chart-ptard']=new Chart(c,{type:'line',data:{labels,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},maxRotation:30,autoSkip:false},grid:{color:'rgba(0,0,0,0.04)'}},y:{ticks:{font:{size:10}}}}}});
+}
+function savePtard(){
+  const dv=document.getElementById('pd-date').value; if(!dv){alert('Ingresa fecha.');return;}
+  const g=id=>{const el=document.getElementById(id);return el&&el.value!==''?parseFloat(el.value):null;};
+  const gt=id=>{const el=document.getElementById(id);return el?el.value.trim():'';};
+  state.ptard.push({date:dv,ent_pH:g('pd-eph'),ent_caudal:g('pd-ecq'),ent_DQO:g('pd-edqo'),sal_pH:g('pd-sph'),sal_caudal:g('pd-scq'),sal_DQO:g('pd-sdqo'),sal_cloro:g('pd-scl'),sal_ssed:g('pd-ssed'),horas_op:g('pd-horas'),lm_ssed:g('pd-lssed'),lm_OD:g('pd-lod'),lm_pH:g('pd-lph'),lm_aspecto:gt('pd-lasp')});
+  state.ptard.sort((a,b)=>a.date.localeCompare(b.date));
+  renderPtard(); renderGeneral(); ts();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// QUÍMICOS
+// ═══════════════════════════════════════════════════════════════════
+function renderQuimicos(){
+  applyFilter('quim');
+  const cont=document.getElementById('view-quimicos');
+  const datosQ=filterData(state.quimicos,filterMes,filterAnio);
+  
+  // ── Consolidado mensual ──────────────────────────────────────────
+  const mesesQ=[...new Set(state.quimicos.map(r=>r.date.slice(0,7)))].sort();
+  const mesActualQ=filterMes||mesesQ[mesesQ.length-1]||'';
+  const registrosMes=state.quimicos.filter(r=>r.date.startsWith(mesActualQ));
+  
+  let consol={};
+  registrosMes.forEach(r=>{
+    const k=r.planta+'_'+r.quimico;
+    if(!consol[k]) consol[k]={planta:r.planta,quimico:r.quimico,unidad:r.unidad||'',totalSale:0,totalCosto:0,totalM3:0,dias:0};
+    consol[k].totalSale+=parseFloat(r.sale)||0;
+    consol[k].totalCosto+=(parseFloat(r.sale)||0)*(parseFloat(r.costo_unit)||0);
+    consol[k].totalM3+=parseFloat(r.caudal_m3)||0;
+    consol[k].dias++;
+  });
+  
+  let consolRows='';
+  let gtCosto=0,gtM3=0;
+  Object.values(consol).forEach(c=>{
+    const cm3=c.totalM3>0?Math.round(c.totalCosto/c.totalM3):0;
+    gtCosto+=c.totalCosto; gtM3+=c.totalM3;
+    consolRows+=`<tr><td>${c.planta}</td><td>${c.quimico}</td><td class="r">${parseFloat(c.totalSale.toFixed(1)).toLocaleString('es-CO')}</td><td class="r">${Math.round(c.totalCosto).toLocaleString('es-CO')}</td><td class="r">${cm3.toLocaleString('es-CO')}</td></tr>`;
+  });
+  if(consolRows){
+    consolRows+=`<tr class="total"><td colspan="2">TOTAL</td><td class="r">—</td><td class="r">${Math.round(gtCosto).toLocaleString('es-CO')}</td><td class="r">${gtM3>0?Math.round(gtCosto/gtM3).toLocaleString('es-CO'):'—'}</td></tr>`;
+  }
+
+  let h=filterBarHTML('quim',state.quimicos,"renderQuimicos()");
+  h+=`<div class="sec">Consolidado mensual — ${mesActualQ||'sin datos'}</div>`;
+  h+=`<div class="inv-wrap"><table class="consol-table">
+    <thead><tr><th>Planta</th><th>Químico</th><th class="r">Total consumido</th><th class="r">Costo total (COP)</th><th class="r">COP/m³</th></tr></thead>
+    <tbody>${consolRows||'<tr><td colspan="5" style="text-align:center;color:#bbb;padding:12px">Sin registros para este mes</td></tr>'}</tbody>
+  </table></div>`;
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">`;
+  ['PTAP','PTARD'].forEach(planta=>{
+    const quims=QUIMICOS_DEF[planta];
+    let costoTotal=0, caudal_ref=0;
+    quims.forEach(q=>{
+      const rows=state.quimicos.filter(r=>r.planta===planta&&r.quimico===q.id);
+      const last=rows.length?rows[rows.length-1]:null;
+      if(last){costoTotal+=last.sale*last.costo_unit;caudal_ref=last.caudal_m3||caudal_ref;}
+    });
+    const costoM3=caudal_ref?costoTotal/caudal_ref:0;
+    h+=`<div>
+    <div class="sec">${planta}</div>
+    <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+      <div class="kpi hl"><div class="lbl">Costo hoy (COP)</div><div class="val cyan">${Math.round(costoTotal).toLocaleString('es-CO')}</div></div>
+      <div class="kpi hl"><div class="lbl">COP/m³</div><div class="val cyan">${caudal_ref?Math.round(costoM3).toLocaleString('es-CO'):'—'}</div></div>
+      <div class="kpi"><div class="lbl">Caudal (m³/d)</div><div class="val">${caudal_ref||'—'}</div></div>
+    </div>
+    <div class="inv-wrap"><table class="inv-table">
+      <thead><tr><th>Químico</th><th class="r">Inicial</th><th class="r">Sale</th><th class="r">Ingresa</th><th class="r">Final</th><th class="r">Stock</th><th class="r">Conc%</th><th class="r">Dosis mg/L</th><th class="r">COP/m³</th></tr></thead>
+      <tbody>`;
+    quims.forEach(q=>{
+      const rows=state.quimicos.filter(r=>r.planta===planta&&r.quimico===q.id);
+      const last=rows.length?rows[rows.length-1]:null;
+      if(!last){h+=`<tr><td><strong>${q.id}</strong><br><span style="font-size:10px;color:#999">${q.unit}</span></td><td colspan="8" style="text-align:center;color:#bbb;font-size:11px">Sin registros</td></tr>`;return;}
+      const fin=parseFloat((last.ini-last.sale+last.ingresa).toFixed(2));
+      const dias=last.sale>0?fin/last.sale:999;
+      const st=dias<3?'fail':dias<7?'warn':'ok';
+      const pct=Math.min(100,Math.round((dias/30)*100));
+      const barC=st==='ok'?'#1D9E75':st==='warn'?'#BA7517':'#E24B4A';
+      let dosis=null;
+      if(last.sale&&last.caudal_m3){
+        let sale_g=q.unit==='kg'?last.sale*1000:q.unit==='L'?last.sale*1000:last.sale;
+        const ia=sale_g*(last.conc/100);
+        dosis=parseFloat((ia*1000/(last.caudal_m3*1000)).toFixed(1));
+      }
+      const cm3=last.caudal_m3?parseFloat((last.sale*last.costo_unit/last.caudal_m3).toFixed(0)):null;
+      h+=`<tr>
+        <td><strong>${q.id}</strong><br><span style="font-size:10px;color:#999">${q.unit}</span></td>
+        <td class="r">${fmt(last.ini,1)}</td><td class="r">${fmt(last.sale,1)}</td><td class="r">${last.ingresa>0?'<span style="color:#1D9E75;font-weight:500">+'+fmt(last.ingresa,1)+'</span>':0}</td>
+        <td class="r"><span class="fin-val ${st}">${fmt(fin,1)}</span></td>
+        <td class="r"><div class="stock-mini"><div class="stock-bar-bg"><div class="stock-bar-fill" style="width:${pct}%;background:${barC}"></div></div><span style="font-size:10px;color:${barC};font-weight:500;min-width:24px">${dias<999?fmt(dias,1):'∞'}d</span></div></td>
+        <td class="r"><input class="conc-inp" type="number" step="0.1" value="${last.conc}" onchange="updateConc('${planta}','${q.id}',this.value)"></td>
+        <td class="r">${dosis!==null?dosis+'':'—'}</td>
+        <td class="r">${cm3!==null?Math.round(cm3).toLocaleString('es-CO'):'—'}</td>
+      </tr>`;
+    });
+    h+=`</tbody></table></div>
+    <div class="sec">Registrar movimiento del día</div>
+    <div class="form-block">
+      <div class="form-grid">
+        <div><label>Fecha</label><input type="date" id="qdate-${planta}"></div>
+        <div><label>Caudal tratado (m³/d)</label><input type="number" step="any" id="qcaudal-${planta}" placeholder="13.0"></div>
+      </div>`;
+    quims.forEach(q=>{
+      const rows=state.quimicos.filter(r=>r.planta===planta&&r.quimico===q.id);
+      const last=rows.length?rows[rows.length-1]:null;
+      const ini_sug=last?parseFloat((last.ini-last.sale+last.ingresa).toFixed(2)):0;
+      h+=`<div class="subsec">${q.id} (${q.unit}) — inicial sugerido: <strong>${ini_sug}</strong></div>
+      <div class="form-grid">
+        <div><label>Inicial (${q.unit})</label><input type="number" step="any" id="qini-${planta}-${q.id}" value="${ini_sug}"></div>
+        <div><label>Sale (${q.unit})</label><input type="number" step="any" id="qsale-${planta}-${q.id}" placeholder="0"></div>
+        <div><label>Ingresa (${q.unit})</label><input type="number" step="any" id="qing-${planta}-${q.id}" placeholder="0"></div>
+        <div><label>COP/${q.unit}</label><input type="number" step="any" id="qcosto-${planta}-${q.id}" value="${last?last.costo_unit:q.costo}"></div>
+      </div>`;
+    });
+    h+=`<button class="btn" onclick="saveQuimicos('${planta}')">Guardar ${planta}</button></div></div>`;
+  });
+  h+=`</div>`;
+  cont.innerHTML=h;
+  const td=new Date().toISOString().slice(0,10);
+  ['PTAP','PTARD'].forEach(p=>{const el=document.getElementById('qdate-'+p);if(el)el.value=td;});
+}
+function updateConc(planta,qid,val){
+  const rows=state.quimicos.filter(r=>r.planta===planta&&r.quimico===qid);
+  if(rows.length){rows[rows.length-1].conc=parseFloat(val)||0;renderQuimicos();}
+}
+function saveQuimicos(planta){
+  const dv=document.getElementById('qdate-'+planta).value; if(!dv){alert('Ingresa fecha.');return;}
+  const caudal=parseFloat(document.getElementById('qcaudal-'+planta).value)||0;
+  QUIMICOS_DEF[planta].forEach(q=>{
+    const ini=parseFloat(document.getElementById('qini-'+planta+'-'+q.id).value)||0;
+    const sale=parseFloat(document.getElementById('qsale-'+planta+'-'+q.id).value)||0;
+    const ingresa=parseFloat(document.getElementById('qing-'+planta+'-'+q.id).value)||0;
+    const costo_unit=parseFloat(document.getElementById('qcosto-'+planta+'-'+q.id).value)||q.costo;
+    const rows=state.quimicos.filter(r=>r.planta===planta&&r.quimico===q.id);
+    const last=rows.length?rows[rows.length-1]:null;
+    const conc=last?last.conc:q.conc;
+    state.quimicos.push({date:dv,planta,quimico:q.id,ini,sale,ingresa,fin:parseFloat((ini-sale+ingresa).toFixed(3)),conc,costo_unit,caudal_m3:caudal});
+    state.quimicos.sort((a,b)=>a.date.localeCompare(b.date));
+  });
+  renderQuimicos(); ts();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NOVEDADES
+// ═══════════════════════════════════════════════════════════════════
+function renderNovedades(){
+  applyFilter('nov');
+  const cont=document.getElementById('view-novedades');
+  let novBase=novFilter==='todos'?state.novedades:state.novedades.filter(n=>n.estado===novFilter);
+  const fil=filterData(novBase,filterMes,filterAnio);
+  const ab=state.novedades.filter(n=>n.estado==='abierta').length,pr=state.novedades.filter(n=>n.estado==='proceso').length,ce=state.novedades.filter(n=>n.estado==='cerrada').length;
+  const tl={falla:'Falla de equipo',visita:'Visita técnica',obs:'Observación'};
+  const tb={falla:'badge-falla',visita:'badge-visita',obs:'badge-obs'};
+  const eb={abierta:'badge-abierta',proceso:'badge-proceso',cerrada:'badge-cerrada'};
+  const el2={abierta:'Abierta',proceso:'En proceso',cerrada:'Cerrada'};
+  const pb={PTAP:'badge-ptap',PTARD:'badge-ptard',Ambas:'badge-ptap'};
+  let h=filterBarHTML('nov',state.novedades,"renderNovedades()");
+  h+=`<div class="kpi-grid">
+    <div class="kpi"><div class="lbl">Abiertas</div><div class="val fail">${ab}</div></div>
+    <div class="kpi"><div class="lbl">En proceso</div><div class="val warn">${pr}</div></div>
+    <div class="kpi"><div class="lbl">Cerradas</div><div class="val ok">${ce}</div></div>
+    <div class="kpi"><div class="lbl">Total</div><div class="val">${state.novedades.length}</div></div>
+  </div>
+  <div class="sec">Registrar novedad</div>
+  <div class="form-block">
+    <div class="form-grid">
+      <div><label>Fecha</label><input type="date" id="nv-date"></div>
+      <div><label>Planta</label><select id="nv-plant"><option>PTAP</option><option>PTARD</option><option>Ambas</option></select></div>
+      <div><label>Tipo</label><select id="nv-tipo"><option value="falla">Falla de equipo</option><option value="visita">Visita técnica</option><option value="obs">Observación</option></select></div>
+      <div><label>Estado</label><select id="nv-estado"><option value="abierta">Abierta</option><option value="proceso">En proceso</option><option value="cerrada">Cerrada</option></select></div>
+      <div><label>Reportado por</label><input type="text" id="nv-rep" placeholder="Operador"></div>
+    </div>
+    <div class="form-full"><label>Descripción</label><textarea id="nv-desc" placeholder="Describe la novedad..."></textarea></div>
+    <div class="form-full"><label>Acción tomada / pendiente</label><textarea id="nv-acc" placeholder="Acción correctiva..."></textarea></div>
+    <button class="btn" onclick="saveNov()">Registrar novedad</button>
+  </div>
+  <div class="sec" style="margin-top:1rem">Historial</div>
+  <div class="nov-filters">
+    <button class="fbtn ${novFilter==='todos'?'active':''}" onclick="setNovFil('todos')">Todas</button>
+    <button class="fbtn ${novFilter==='abierta'?'active':''}" onclick="setNovFil('abierta')">Abiertas</button>
+    <button class="fbtn ${novFilter==='proceso'?'active':''}" onclick="setNovFil('proceso')">En proceso</button>
+    <button class="fbtn ${novFilter==='cerrada'?'active':''}" onclick="setNovFil('cerrada')">Cerradas</button>
+  </div>`;
+  if(!fil.length) h+=`<div style="text-align:center;color:#bbb;padding:20px;font-size:12px">Sin novedades.</div>`;
+  else [...fil].reverse().forEach(n=>{
+    h+=`<div class="nov-card"><div class="nov-top"><div class="badges"><span class="badge ${tb[n.tipo]||''}">${tl[n.tipo]||n.tipo}</span><span class="badge ${pb[n.plant]||''}">${n.plant}</span><span class="badge ${eb[n.estado]||''}">${el2[n.estado]||n.estado}</span></div><span class="nov-date">${n.date}</span></div><div class="nov-desc">${n.desc}</div>${n.accion?`<div class="nov-acc">→ ${n.accion}</div>`:''}</div>`;
+  });
+  cont.innerHTML=h;
+  const eld=document.getElementById('nv-date'); if(eld) eld.value=new Date().toISOString().slice(0,10);
+}
+function setNovFil(f){ novFilter=f; renderNovedades(); }
+function saveNov(){
+  const dv=document.getElementById('nv-date').value; if(!dv){alert('Ingresa fecha.');return;}
+  const desc=document.getElementById('nv-desc').value.trim(); if(!desc){alert('Ingresa descripción.');return;}
+  state.novedades.push({id:novId++,date:dv,plant:document.getElementById('nv-plant').value,tipo:document.getElementById('nv-tipo').value,desc,accion:document.getElementById('nv-acc').value.trim(),estado:document.getElementById('nv-estado').value});
+  state.novedades.sort((a,b)=>a.date.localeCompare(b.date));
+  renderNovedades(); ts();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// NAVEGACIÓN
+// ═══════════════════════════════════════════════════════════════════
+function renderAll(){
+  renderGeneral(); renderPtapDiario(); renderPtapMensual(); renderPtard(); renderQuimicos(); renderNovedades();
+}
+function switchTab(t){
+  const tabs=['general','ptapd','ptapm','ptard','quimicos','novedades'];
+  document.querySelectorAll('.tab').forEach((el,i)=>el.classList.toggle('active',tabs[i]===t));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+t).classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════
+document.getElementById('hdr-date').textContent = new Date().toLocaleDateString('es-CO',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+renderAll();
+if(USE_SHEETS) loadFromSheets();
+</script>
+</body>
+</html>
